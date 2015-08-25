@@ -1,0 +1,62 @@
+<?php
+
+$protocol = 'http';
+$host = 'example.com';
+
+$arr = array(
+  'notes' => array(
+    array(
+      'name' => 'Token',
+      'protocol' => $protocol,
+      'host' => $host,
+      'path' => 'services/session/token',
+      'qs' => '',
+      'method' => 'GET',
+      'assertions' => array(
+        'code' => 200,
+        'desc' => 'Token request',
+      ),
+      'persist' => array(
+        'token' => '/^(.*)$/',
+      )
+    ),
+    array(
+      'name' => 'Login',
+      'protocol' => $protocol,
+      'host' => $host,
+      'path' => 'services/entity_user/login.json',
+      'qs' => '',
+      'fields' => array(
+        'username' => 'email_address',
+        'password' => 'password',
+        'remember' => 0,
+      ),
+      'http_headers' => array(
+        'X-CSRF-Token' => '{{token}}',
+      ),
+      'method' => 'POST',
+      'assertions' => array(
+        'code' => 200,
+        'desc' => 'Login user',
+      ),
+    ),
+    array(
+      'name' => 'Course request',
+      'protocol' => $protocol,
+      'host' => $host,
+      'path' => 'services/entity_node/12526',
+      'qs' => 'active_only=1&fields=nid,type,status,subtitle,children,title,body,category,tid,media_length,submit_limit,requirement,total_slides,sectioning,library,webform&recurse=1',
+      'method' => 'GET',
+      'assertions' => array(
+        'code' => 200,
+        'desc' => 'Course request',
+      ),
+    ),
+  ),
+  'notification' => array(
+    'email' => 'my@email.com',
+  ),
+);
+
+
+echo yaml_emit($arr);
