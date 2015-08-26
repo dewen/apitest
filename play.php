@@ -31,6 +31,7 @@ function play_assert($note) {
   curl_setopt($res, CURLOPT_COOKIEFILE, '/tmp/play_cookie_jar.txt');
   curl_setopt($res, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($res, CURLINFO_HEADER_OUT, true);
+  curl_setopt($res, CURLOPT_SSL_VERIFYPEER, false);
 
   if (isset($note['authentication']) && $note['authentication']){
     curl_setopt($res, CURLOPT_USERPWD, $note['authentication']['auth_name'].':'.$note['authentication']['auth_pass']);
@@ -75,6 +76,13 @@ function play_assert($note) {
     assert_options(ASSERT_WARNING, 0);
     assert_options(ASSERT_QUIET_EVAL, 1);
     assert('$code == $expected', $desc);
+  }
+  else {
+    echo 'Curl error: ' . curl_error($res);
+  }
+  if (isset($note['debug'])) {
+    var_dump($result);
+    var_dump($info);
   }
   curl_close($res);
 }
