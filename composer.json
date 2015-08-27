@@ -1,0 +1,11 @@
+{
+    "name": "dewen/apitest",
+    "description": "A simple API endpoint test program",
+    "authors": [
+        {
+            "name": "Dewen",
+            "email": "dewen.sinocrest@gmail.com"
+        }
+    ],
+    "require": {}
+}
