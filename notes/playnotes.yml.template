@@ -1,0 +1,40 @@
+---
+notes:
+- name: Token
+  protocol: http
+  host: example.com
+  path: services/session/token
+  qs: ""
+  method: GET
+  assertions:
+    code: 200
+    desc: Token request
+  persist:
+    token: /^(.*)$/
+- name: Login
+  protocol: http
+  host: example.com
+  path: services/entity_user/login.json
+  qs: ""
+  fields:
+    username: email_address
+    password: password
+    remember: 0
+  http_headers:
+    X-CSRF-Token: '{{token}}'
+  method: POST
+  assertions:
+    code: 200
+    desc: Login user
+- name: Course request
+  protocol: http
+  host: example.com
+  path: services/entity_node/12526
+  qs: active_only=1&fields=nid,type,status,subtitle,children,title,body,category,tid,media_length,submit_limit,requirement,total_slides,sectioning,library,webform&recurse=1
+  method: GET
+  assertions:
+    code: 200
+    desc: Course request
+notification:
+  email: my@email.com
+...

@@ -6,6 +6,7 @@
 
 ### Usage ###
 
-* `cp playnotes.php.template playnotes.php`
-* edit playnotes.php to create the play note
-* create the play note yaml config file. `php playnotes.php > playnotes.yml`
+* Copy the config file from template: `cp playnotes.php.template playnotes.php`
+* Edit `notes/*.yml` to create the play notes, 
+* or you can edit in a PHP notes file (with template - notes/playnotes.php.template) and generate the yaml: `php notes/playnotes.php > notes/playnotes.yml`
+* Play the notes: `php play.php`

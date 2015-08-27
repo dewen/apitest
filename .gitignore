@@ -1,4 +1,4 @@
 playnotes.php
-playnotes.yml
+notes/*.yml
 
 /vendor/

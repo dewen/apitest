@@ -4,6 +4,13 @@ $protocol = 'http';
 $host = 'example.com';
 
 $arr = array(
+  // execution plan
+  'execution' => array(
+    'name' => 'my_project_login',
+    'seq' => 100,
+    'dependencies' => array(),
+  ),
+  // play notes
   'notes' => array(
     array(
       'name' => 'Token',
@@ -13,13 +20,18 @@ $arr = array(
       'qs' => '',
       'method' => 'GET',
       'assertions' => array(
-        'code' => 200,
-        'desc' => 'Token request',
+        array('type' => 'http_code', 'value' => 200, 'desc' => 'Token request return 200',),
+        array('type' => 'content_type', 'value' => 'text/plain', 'desc' => 'Content type is text/plain',),
+        array('type' => '_response_body', 'method' => 'regex', 'value' => '/^([a-z0-9]+)$/i', 'desc' => 'Content matches pattern - "/^([a-z0-9\-_]+)$/i".',),
+        array('type' => '_response_header', 'method' => 'regex', 'value' => '/X-Drupal-Cache: MISS/i', 'desc' => 'Header contains "X-Drupal-Cache: MISS"',),
       ),
+      'debug' => 1,
       'persist' => array(
-        'token' => '/^(.*)$/',
+        'token' => '/^([a-z0-9\-_]+)$/i',
       )
     ),
+
+    /*
     array(
       'name' => 'Login',
       'protocol' => $protocol,
@@ -36,10 +48,10 @@ $arr = array(
       ),
       'method' => 'POST',
       'assertions' => array(
-        'code' => 200,
-        'desc' => 'Login user',
+        array('type' => 'http_code', 'value' => 200, 'desc' => 'User able to login',),
       ),
     ),
+
     array(
       'name' => 'Course request',
       'protocol' => $protocol,
@@ -48,10 +60,11 @@ $arr = array(
       'qs' => 'active_only=1&fields=nid,type,status,subtitle,children,title,body,category,tid,media_length,submit_limit,requirement,total_slides,sectioning,library,webform&recurse=1',
       'method' => 'GET',
       'assertions' => array(
-        'code' => 200,
-        'desc' => 'Course request',
+        array('type' => 'http_code', 'value' => 200, 'desc' => 'Course call returns 200',),
       ),
     ),
+     */
+
   ),
   'notification' => array(
     'email' => 'my@email.com',
