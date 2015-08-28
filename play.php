@@ -16,9 +16,9 @@ require __DIR__.'/vendor/autoload.php';
 
 $playnotes = yaml_parse_file('notes/playnotes.yml');
 $notes = $playnotes['notes'];
+$options = $playnotes['options'];
 $notify = $playnotes['notification']['email'];
 $assert_result = array();
-assert_options(ASSERT_CALLBACK, 'play_callback');
 
 foreach ($notes as $note) {
   play_assert($note);
@@ -27,6 +27,8 @@ foreach ($notes as $note) {
 function play_assert($note) {
   static $persist = array();
   global $assert_result;
+
+  $note_name = $note['name'];
 
   $res = curl_init();
   $url = $note['protocol'] . '://' . $note['host'] . '/' . $note['path'];
@@ -74,16 +76,28 @@ function play_assert($note) {
   }
 
   $response = curl_exec($res);
-  $header_text = substr($response, 0, strpos($response, "\r\n\r\n"));
-  $body_text = substr($response, strpos($response, "\r\n\r\n") + 4);
+  $text_header = substr($response, 0, strpos($response, "\r\n\r\n"));
+  $text_body = substr($response, strpos($response, "\r\n\r\n") + 4);
 
+  // check if content contains user defined variable
   if (isset($note['persist'])) {
-    foreach ($note['persist'] as $key => $pattern) {
-      if (preg_match($pattern, $response, $m)) {
-        $persist[$key] = $m[1];
+    foreach ($note['persist'] as $p) {
+      $content = (isset($p['is_header']) && $p['is_header']) ? $text_header : $text_body;
+      if (preg_match($p['value'], $content, $m)) {
+        $persist[$p['name']] = $m[1];
       }
     }
   }
+
+ob_start();
+echo "{{{ $note_name \n";
+var_dump(json_decode($text_body));
+echo "}}} \n";
+$fp = fopen('/tmp/output.log', 'a+');
+fwrite($fp, ob_get_contents());
+fclose($fp);
+ob_end_clean();
+
   if(!curl_errno($res)) {
     $info = curl_getinfo($res);
     // assertion
@@ -123,24 +137,43 @@ function play_assert($note) {
          *
          */
 
-        $type = $assertion['type'];
-        $method = isset($assertion['method']) ? $assertion['method'] : 'eq';
-        if (isset($info[$type])) {
-          $actual = $info[$type];
+        $assert_type = isset($assertion['assert_type']) ? $assertion['assert_type'] : 'eq';
+        $location = $assertion['location'];
+        $format = $assertion['format'];
+        $info_name = $assertion['name'];
+        switch ($location) {
+          case 'info':
+            if (isset($info[$info_name])) {
+              $actual = $info[$info_name];
+            }
+            else {
+              throw new \Exception('Invalid curl info name ['.$info_name.']');
+            }
+            break;
+          case 'body':
+          case 'header':
+            $actual = ($location == 'header') ? $text_header : $text_body;
+            break;
+          default:
+            throw new \Exception('Invalid assertion location [' . $location . ']');
         }
-        elseif (in_array($type, array('_response_body', '_response_header'))) {
-          $actual = ($type == '_response_header') ? $header_text : $body_text;
-        }
-        else {
-          continue;
+
+        if ($format == 'json') {
+          $actual = json_decode($actual);
         }
 
         try {
-          switch ($method) {
+          switch ($assert_type) {
             case 'eq':
-              Assertion::eq($actual, $assertion['value'], $assertion['desc']);
+              if (is_object($actual)) {
+                // Assertion::eq($actual, $assertion['value'], $assertion['desc']);
+              }
+              else {
+                Assertion::eq($actual, $assertion['value'], $assertion['desc']);
+              }
               $assert_result[] = array(
                 'title' => $note['name'],
+                'status' => 'SUCCESS',
                 'message' => $assertion['desc'],
               );
               break;
@@ -148,14 +181,20 @@ function play_assert($note) {
               Assertion::regex($actual, $assertion['value'], $assertion['desc']);
               $assert_result[] = array(
                 'title' => $note['name'],
+                'status' => 'SUCCESS',
                 'message' => $assertion['desc'],
               );
               break;
+            case 'json':
+              break;
+            default:
+              throw new \Exception('Invalid assertion method [' . $method . ']');
           }
         }
         catch (AssertionFailedException $e) {
           $assert_result[] = array(
             'title' => $note['name'],
+            'status' => 'FAILED',
             'message' => 'FAILED >>> ' . $e->getMessage() . " actual: " . $e->getValue(),
           );
         }
@@ -172,16 +211,24 @@ function play_assert($note) {
 }
 
 function play_shutdown() {
-  global $notify, $assert_result;
+  global $notify, $assert_result, $options;
   if (!$assert_result) {
     return;
   }
-  $body = "IIN Play Notes Failed:\n";
+  $body = '';
   foreach ($assert_result as $_) {
+    if (($options['assert_report'] == 'FAILED_ONLY') && ('FAILED' !== $_['status'])) {
+      continue;
+    }
     $body .= " - " . $_['title'] . ': ' . $_['message'] . "\n";
   }
-  mail($notify, 'Playnotes report', $body);
-  echo "Email sent\n";
+  if ($body) {
+    $body = "IIN Play Notes Assertions:\n" . $body;
+  }
+  if ($options['email_notification']) {
+    mail($notify, 'Playnotes report', $body);
+    echo "Email sent\n";
+  }
   echo "$body\n";
 }
 
