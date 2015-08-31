@@ -16,17 +16,13 @@ $arr = array(
   'notes' => array(
     array(
       'name' => 'Token',
-      'protocol' => $protocol,
-      'host' => $host,
-      'path' => 'services/session/token',
-      'qs' => '',
+      'url' => $protocol . '://' . $host . '/services/session/token',
       'method' => 'GET',
       'assertions' => array(
-        array('type' => 'info', ),
-        array('location' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'http_code', 'value' => 200, 'desc' => 'Toek request returns 200',),
-        array('location' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'content_type', 'value' => 'text/plain', 'desc' => 'Content type is text/plain',),
-        array('location' => 'header', 'format' => 'string', 'assert_type' => 'regex', 'value' => '/X-Drupal-Cache: MISS/i', 'desc' => 'Header contains "X-Drupal-Cache: MISS"',),
-        array('location' => 'body',   'format' => 'string', 'assert_type' => 'regex', 'value' => '/^([a-z0-9_\-]+)$/i', 'desc' => 'Content matches pattern - "/^([a-z0-9\-_]+)$/i".',),
+        array('section' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'http_code', 'value' => 200, 'desc' => 'Token request returns 200',),
+        array('section' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'content_type', 'value' => 'text/plain', 'desc' => 'Content type is text/plain',),
+        array('section' => 'header', 'format' => 'string', 'assert_type' => 'regex', 'value' => '/X-Drupal-Cache: MISS/i', 'desc' => 'Header contains "X-Drupal-Cache: MISS"',),
+        array('section' => 'body',   'format' => 'string', 'assert_type' => 'regex', 'value' => '/^([a-z0-9_\-]+)$/i', 'desc' => 'Content matches pattern - "/^([a-z0-9\-_]+)$/i".',),
       ),
       'debug' => 1,
 
@@ -43,10 +39,7 @@ $arr = array(
 
     array(
       'name' => 'Login',
-      'protocol' => $protocol,
-      'host' => $host,
-      'path' => 'services/entity_user/login.json',
-      'qs' => '',
+      'url' => $protocol . '://' . $host . '/services/entity_user/login.json',
       'fields' => array(
         'username' => 'hctpjune2014',
         'password' => 'password',
@@ -57,23 +50,29 @@ $arr = array(
       ),
       'method' => 'POST',
       'assertions' => array(
-        array('location' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'http_code', 'value' => 200, 'desc' => 'User login returns 200',),
-        array('location' => 'header', 'format' => 'string', 'assert_type' => 'regex', 'value' => '/Content-Type: application\/json/i', 'desc' => 'Header contains "Content-Type: application/json"',),
-        array('location' => 'body', 'format' => 'json', 'assert_type' => 'eq', 'name' => 'user->uid', 'value' => '7416', 'desc' => 'Content matches pattern - "/^([a-z0-9\-_]+)$/i".',),
+        array('section' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'http_code', 'value' => 200, 'desc' => 'User login returns 200',),
+        array('section' => 'header', 'format' => 'string', 'assert_type' => 'regex', 'value' => '/Content-Type: application\/json/i', 'desc' => 'Header contains "Content-Type: application/json"',),
+        array('section' => 'body', 'format' => 'json', 'assert_type' => 'eq', 'name' => 'user->uid', 'value' => '7416', 'desc' => 'Content matches pattern - "/^([a-z0-9\-_]+)$/i".',),
       ),
-      'debug' => 1,
+      'debug' => 0,
+
+      'persist' => array(
+        array(
+          'content_type' => 'object',
+          'name' => 'enrollments', 
+          'value' => 'user->enrollments', 
+          'is_header' => 0,
+        ),
+      )
     ),
 
     /*
     array(
-      'name' => 'Course request',
-      'protocol' => $protocol,
-      'host' => $host,
-      'path' => 'services/entity_node/12526',
-      'qs' => 'active_only=1&fields=nid,type,status,subtitle,children,title,body,category,tid,media_length,submit_limit,requirement,total_slides,sectioning,library,webform&recurse=1',
+      'name' => 'Enrollment',
+      'url' => $protocol . '://' . $host . '/services/entity_field_collection_item/186326',
       'method' => 'GET',
       'assertions' => array(
-        array('type' => 'http_code', 'value' => 200, 'desc' => 'Course call returns 200',),
+        array('section' => 'info', 'format' => 'string', 'assert_type' => 'eq', 'name' => 'http_code', 'value' => 200, 'desc' => 'Enrollment call returns 200',),
       ),
     ),
      */
