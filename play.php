@@ -31,8 +31,7 @@ function play_assert($note) {
   $note_name = $note['name'];
 
   $res = curl_init();
-  $url = $note['protocol'] . '://' . $note['host'] . '/' . $note['path'];
-  $url .= ($note['qs']) ? '?' . $note['qs'] : '';
+  $url = $note['url'];
 
   curl_setopt($res, CURLOPT_URL, $url);
 
@@ -69,6 +68,9 @@ function play_assert($note) {
         if (isset($persist[$hv])) {
           $headers[] = $n . ': ' . $persist[$hv];
         }
+        else {
+          $headers[] = $n . ': ' . $v;
+        }
       }
     }
 
@@ -83,20 +85,20 @@ function play_assert($note) {
   if (isset($note['persist'])) {
     foreach ($note['persist'] as $p) {
       $content = (isset($p['is_header']) && $p['is_header']) ? $text_header : $text_body;
-      if (preg_match($p['value'], $content, $m)) {
-        $persist[$p['name']] = $m[1];
+      switch ($p['content_type']) {
+      case 'string':
+        if (preg_match($p['value'], $content, $m)) {
+          $persist[$p['name']] = $m[1];
+        }
+        break;
+      case 'object':
+        if (is_object($content_object = json_decode($content))) {
+          eval('$persist[$p["name"]] = $content_object->' . $p['value'] . ';');
+        }
+        break;
       }
     }
   }
-
-ob_start();
-echo "{{{ $note_name \n";
-var_dump(json_decode($text_body));
-echo "}}} \n";
-$fp = fopen('/tmp/output.log', 'a+');
-fwrite($fp, ob_get_contents());
-fclose($fp);
-ob_end_clean();
 
   if(!curl_errno($res)) {
     $info = curl_getinfo($res);
@@ -138,10 +140,11 @@ ob_end_clean();
          */
 
         $assert_type = isset($assertion['assert_type']) ? $assertion['assert_type'] : 'eq';
-        $location = $assertion['location'];
+        $section = $assertion['section'];
         $format = $assertion['format'];
-        $info_name = $assertion['name'];
-        switch ($location) {
+        $info_name = isset($assertion['name']) ? $assertion['name'] : '';
+
+        switch ($section) {
           case 'info':
             if (isset($info[$info_name])) {
               $actual = $info[$info_name];
@@ -152,25 +155,29 @@ ob_end_clean();
             break;
           case 'body':
           case 'header':
-            $actual = ($location == 'header') ? $text_header : $text_body;
+            $actual = ($section == 'header') ? $text_header : $text_body;
             break;
           default:
-            throw new \Exception('Invalid assertion location [' . $location . ']');
-        }
-
-        if ($format == 'json') {
-          $actual = json_decode($actual);
+            throw new \Exception('Invalid assertion section [' . $section . ']');
         }
 
         try {
+          // check content format
+          if ($format == 'json') {
+            $actual = json_decode($actual);
+            if (!is_object($actual)) {
+              throw new AssertionFailedException('Invalid return format, expecting json', 1000);
+            }
+          }
           switch ($assert_type) {
             case 'eq':
               if (is_object($actual)) {
-                // Assertion::eq($actual, $assertion['value'], $assertion['desc']);
+                eval('$actual_value = $actual->' . $assertion['name'] . ';');
               }
               else {
-                Assertion::eq($actual, $assertion['value'], $assertion['desc']);
+                $actual_value = $actual;
               }
+              Assertion::eq($actual_value, $assertion['value'], $assertion['desc']);
               $assert_result[] = array(
                 'title' => $note['name'],
                 'status' => 'SUCCESS',
@@ -185,8 +192,6 @@ ob_end_clean();
                 'message' => $assertion['desc'],
               );
               break;
-            case 'json':
-              break;
             default:
               throw new \Exception('Invalid assertion method [' . $method . ']');
           }
@@ -195,7 +200,7 @@ ob_end_clean();
           $assert_result[] = array(
             'title' => $note['name'],
             'status' => 'FAILED',
-            'message' => 'FAILED >>> ' . $e->getMessage() . " actual: " . $e->getValue(),
+            'message' => 'FAILED >>> ' . $e->getMessage() . " actual: " . implode(';', (array)$e->getValue()),
           );
         }
       }
@@ -204,7 +209,7 @@ ob_end_clean();
   else {
     echo 'Curl error: ' . curl_error($res);
   }
-  if (isset($note['debug'])) {
+  if (isset($note['debug']) && $note['debug']) {
     var_dump($response);
   }
   curl_close($res);
